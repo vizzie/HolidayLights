@@ -1,6 +1,7 @@
 #pragma once
 #include <Arduino.h>
 #include <FastLED.h>
+#include "effects.h"
 
 struct DateRange {
   uint8_t startMonth;
@@ -9,23 +10,20 @@ struct DateRange {
   uint8_t endDay;
 };
 
-enum EffectId : uint8_t {
-  EFFECT_CHASE,
-  EFFECT_SPARKLE,
-};
-
 struct Season {
   DateRange range;
   const TProgmemRGBPalette16 *palette;
-  EffectId effect;
+  const EffectId *effects; // cycles through these, one at a time
+  uint8_t numEffects;
 };
 
 // True if (month, day) falls within range, handling ranges that wrap the
 // new year (e.g. Dec 31 - Jan 2).
 bool dateInRange(uint8_t month, uint8_t day, const DateRange &range);
 
-// The active season for (month, day), or nullptr if none matches -- callers
-// should fall back to DefaultPalette in that case.
-const Season *getActiveSeason(uint8_t month, uint8_t day);
+// The season for (month, day). Always returns a valid Season: when today
+// doesn't fall inside any defined range (including before the real date
+// has been fetched, i.e. month == 0), a default season is returned instead.
+const Season &getActiveSeason(uint8_t month, uint8_t day);
 
 extern const TProgmemRGBPalette16 DefaultPalette;

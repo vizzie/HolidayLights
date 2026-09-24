@@ -3,6 +3,7 @@
 #include "pixel_map.h"
 #include "current_date.h"
 #include "seasons.h"
+#include "effects.h"
 
 // Strip configuration — adjust to match your hardware.
 #define DATA_PIN 6
@@ -16,77 +17,39 @@
 // calendar date. Skips the Bridge/Linux date lookup entirely (and its
 // up-to-a-minute setup() delay), so it's also the fast path for iterating
 // on palettes/effects. Comment back out before flashing for real use.
-#define FAKE_DATE_MONTH 12
-#define FAKE_DATE_DAY 15
+#define FAKE_DATE_MONTH 7
+#define FAKE_DATE_DAY 4
+
+// Uncomment to force a specific effect regardless of season/cycling, for
+// previewing one effect at a time on the real hardware. Comment back out
+// afterward.
+#define FORCE_EFFECT EFFECT_DIAGONAL_WIPE
+
+// Uncomment to shrink the effect-cycle interval for previewing (e.g. 5000 =
+// 5 seconds instead of 5 minutes). Comment back out before real use.
+#define FORCE_EFFECT_CYCLE_MS 5000UL
+
+#ifdef FORCE_EFFECT_CYCLE_MS
+const uint32_t EFFECT_CYCLE_MS = FORCE_EFFECT_CYCLE_MS;
+#else
+const uint32_t EFFECT_CYCLE_MS = 5UL * 60UL * 1000UL; // advance every 5 minutes
+#endif
 
 CRGB leds[NUM_LEDS];
 
 CurrentDate today = {0, 0, false};
+const Season *activeSeason = nullptr;
 const TProgmemRGBPalette16 *currentPalette = &DefaultPalette;
 EffectId currentEffect = EFFECT_CHASE;
+uint8_t effectIndex = 0;
+uint32_t effectCycleStartMs = 0;
 
 void applySeasonForToday() {
-  if (!today.valid) {
-    return;
-  }
-  const Season *season = getActiveSeason(today.month, today.day);
-  if (season != nullptr) {
-    currentPalette = season->palette;
-    currentEffect = season->effect;
-  } else {
-    currentPalette = &DefaultPalette;
-    currentEffect = EFFECT_CHASE;
-  }
-}
-
-// ---- Linear effect: a chase along the wire, corner to corner ----
-void renderChase(uint16_t frame) {
-  fadeToBlackBy(leds, NUM_LEDS, 32);
-  leds[frame % NUM_LEDS] = ColorFromPalette(*currentPalette, frame & 0xFF);
-}
-
-// ---- 2D effect: falling sparkles ----
-#define NUM_SPARKLES 8
-struct Sparkle {
-  int16_t x, y;
-  uint8_t brightness;
-  uint8_t paletteIndex;
-  bool active;
-};
-Sparkle sparkles[NUM_SPARKLES];
-
-void updateSparkles() {
-  for (uint8_t i = 0; i < NUM_SPARKLES; i++) {
-    Sparkle &s = sparkles[i];
-    if (!s.active) {
-      if (random8() < 20) {
-        s.x = random16(mappedWidth() + 1);
-        s.y = mappedHeight();
-        s.brightness = 255;
-        s.paletteIndex = random8();
-        s.active = true;
-      }
-      continue;
-    }
-    s.y -= 1;
-    s.brightness = qsub8(s.brightness, 40);
-    if (s.y < 0 || s.brightness == 0) {
-      s.active = false;
-    }
-  }
-}
-
-void renderSparkles() {
-  fadeToBlackBy(leds, NUM_LEDS, 40);
-  for (uint16_t i = 0; i < NUM_LEDS; i++) {
-    Point p = ledIndexToXY(i);
-    for (uint8_t j = 0; j < NUM_SPARKLES; j++) {
-      Sparkle &s = sparkles[j];
-      if (s.active && p.x == s.x && p.y == s.y) {
-        leds[i] = ColorFromPalette(*currentPalette, s.paletteIndex, s.brightness);
-      }
-    }
-  }
+  activeSeason = &getActiveSeason(today.month, today.day);
+  currentPalette = activeSeason->palette;
+  effectIndex = 0;
+  currentEffect = activeSeason->effects[0];
+  effectCycleStartMs = millis();
 }
 
 uint16_t frame = 0;
@@ -116,12 +79,17 @@ void loop() {
   }
 #endif
 
-  if (currentEffect == EFFECT_CHASE) {
-    renderChase(frame);
-  } else {
-    updateSparkles();
-    renderSparkles();
+  if (millis() - effectCycleStartMs >= EFFECT_CYCLE_MS) {
+    effectIndex = (effectIndex + 1) % activeSeason->numEffects;
+    currentEffect = activeSeason->effects[effectIndex];
+    effectCycleStartMs = millis();
   }
+
+#ifdef FORCE_EFFECT
+  currentEffect = FORCE_EFFECT;
+#endif
+
+  renderEffect(currentEffect, leds, NUM_LEDS, *currentPalette, frame);
 
   FastLED.show();
   frame++;
