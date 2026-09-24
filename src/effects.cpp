@@ -74,18 +74,75 @@ static void renderVerticalWipe(CRGB *leds, uint16_t numLeds,
   }
 }
 
-// ---- 2D: hard-edge wipe along a 45-degree diagonal ----
+// ---- 2D: hard-edge wipe along a 45-degree diagonal, corner to corner ----
+// Each wipe starts from a randomly chosen corner and sweeps to the opposite
+// one, then holds briefly before picking a new corner and advancing to the
+// next of the palette's 16 defined colors (step 16 across the 0-255 index
+// range lands exactly on each one in turn).
+static const uint16_t DIAGONAL_WIPE_HOLD_FRAMES = 20;
+static const uint8_t DIAGONAL_WIPE_COLOR_STEP = 16;
+
+struct DiagonalWipeState {
+  int16_t threshold;
+  int16_t maxDiag;
+  uint16_t holdCounter;
+  uint8_t cornerIndex; // 0: BL->TR, 1: TR->BL, 2: BR->TL, 3: TL->BR
+  uint8_t colorFromIndex;
+  uint8_t colorToIndex;
+  bool started;
+};
+static DiagonalWipeState diagWipe = {0, 0, 0, 0, 0, 0, false};
+
+// Distance from `p` to the wipe's starting corner, measured along the
+// chosen 45-degree diagonal -- 0 at the start corner, maxDiag at the
+// opposite one.
+static int16_t diagonalDistance(const Point &p, uint8_t cornerIndex,
+                                 int16_t maxWidth, int16_t maxHeight) {
+  switch (cornerIndex) {
+  case 0:
+    return p.x + p.y; // bottom-left -> top-right
+  case 1:
+    return (maxWidth - p.x) + (maxHeight - p.y); // top-right -> bottom-left
+  case 2:
+    return (maxWidth - p.x) + p.y; // bottom-right -> top-left
+  default:
+    return p.x + (maxHeight - p.y); // top-left -> bottom-right
+  }
+}
+
+static void startNextDiagonalWipe() {
+  diagWipe.cornerIndex = random8(4);
+  diagWipe.maxDiag = mappedWidth() + mappedHeight();
+  diagWipe.threshold = 0;
+  diagWipe.holdCounter = 0;
+  diagWipe.colorFromIndex = diagWipe.colorToIndex;
+  diagWipe.colorToIndex += DIAGONAL_WIPE_COLOR_STEP;
+}
+
 static void renderDiagonalWipe(CRGB *leds, uint16_t numLeds,
                                 const TProgmemRGBPalette16 &palette, uint16_t frame) {
-  int16_t maxDiag = mappedWidth() + mappedHeight();
-  int16_t cyclePause = 20;
-  int16_t threshold = (frame / 2) % (maxDiag + cyclePause);
-  CRGB colorFrom = ColorFromPalette(palette, COLOR_FROM_INDEX);
-  CRGB colorTo = ColorFromPalette(palette, COLOR_TO_INDEX);
+  (void)frame; // progress is tracked in diagWipe, not the global frame clock
+  if (!diagWipe.started) {
+    diagWipe.started = true;
+    startNextDiagonalWipe();
+  }
+
+  CRGB colorFrom = ColorFromPalette(palette, diagWipe.colorFromIndex);
+  CRGB colorTo = ColorFromPalette(palette, diagWipe.colorToIndex);
+  int16_t maxWidth = mappedWidth();
+  int16_t maxHeight = mappedHeight();
   for (uint16_t i = 0; i < numLeds; i++) {
     Point p = ledIndexToXY(i);
-    int16_t diag = p.x + p.y;
-    leds[i] = (diag <= threshold) ? colorTo : colorFrom;
+    int16_t d = diagonalDistance(p, diagWipe.cornerIndex, maxWidth, maxHeight);
+    leds[i] = (d <= diagWipe.threshold) ? colorTo : colorFrom;
+  }
+
+  if (diagWipe.threshold < diagWipe.maxDiag) {
+    diagWipe.threshold++;
+  } else if (diagWipe.holdCounter < DIAGONAL_WIPE_HOLD_FRAMES) {
+    diagWipe.holdCounter++;
+  } else {
+    startNextDiagonalWipe();
   }
 }
 

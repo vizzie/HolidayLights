@@ -27,7 +27,7 @@
 
 // Uncomment to shrink the effect-cycle interval for previewing (e.g. 5000 =
 // 5 seconds instead of 5 minutes). Comment back out before real use.
-#define FORCE_EFFECT_CYCLE_MS 5000UL
+// #define FORCE_EFFECT_CYCLE_MS 5000UL
 
 #ifdef FORCE_EFFECT_CYCLE_MS
 const uint32_t EFFECT_CYCLE_MS = FORCE_EFFECT_CYCLE_MS;
