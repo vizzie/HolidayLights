@@ -53,10 +53,10 @@ const TProgmemRGBPalette16 ChristmasPalette PROGMEM = {
 
 // Used whenever today doesn't fall inside any defined season below.
 const TProgmemRGBPalette16 DefaultPalette PROGMEM = {
-    CRGB::White, CRGB::White, CRGB::White, CRGB::White,
-    CRGB::White, CRGB::White, CRGB::White, CRGB::White,
-    CRGB::White, CRGB::White, CRGB::White, CRGB::White,
-    CRGB::White, CRGB::White, CRGB::White, CRGB::White};
+    CRGB::Red, CRGB::Red, CRGB::Orange, CRGB::Orange,
+    CRGB::Yellow, CRGB::Yellow, CRGB::Green, CRGB::Green,
+    CRGB::Cyan, CRGB::Cyan, CRGB::Blue, CRGB::Blue,
+    CRGB::Purple, CRGB::Purple, CRGB::Magenta, CRGB::Magenta};
 
 // Each season cycles through its own list of effects, one at a time --
 // add/remove/reorder freely, order doesn't matter beyond that.

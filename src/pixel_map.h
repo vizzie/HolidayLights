@@ -35,6 +35,12 @@ struct Point {
 // buffer itself.
 Point ledIndexToXY(uint16_t i);
 
+// Same as ledIndexToXY, but with the gaps between openings squeezed out of
+// x -- for effects that should treat the openings as one continuous strip
+// rather than pausing while crossing physically real but unlit gap space.
+Point ledIndexToCompressedXY(uint16_t i);
+
 uint16_t totalMappedLeds();
 int16_t mappedWidth();
 int16_t mappedHeight();
+int16_t mappedCompressedWidth();

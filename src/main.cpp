@@ -17,13 +17,16 @@
 // calendar date. Skips the Bridge/Linux date lookup entirely (and its
 // up-to-a-minute setup() delay), so it's also the fast path for iterating
 // on palettes/effects. Comment back out before flashing for real use.
-#define FAKE_DATE_MONTH 7
-#define FAKE_DATE_DAY 4
+// #define FAKE_DATE_MONTH 7
+// #define FAKE_DATE_DAY 4
 
 // Uncomment to force a specific effect regardless of season/cycling, for
 // previewing one effect at a time on the real hardware. Comment back out
 // afterward.
-#define FORCE_EFFECT EFFECT_DIAGONAL_WIPE
+// #define FORCE_EFFECT EFFECT_SOLID
+
+// Only used when FORCE_EFFECT is EFFECT_SOLID -- the color it holds.
+// #define FORCE_SOLID_COLOR CRGB::White
 
 // Uncomment to shrink the effect-cycle interval for previewing (e.g. 5000 =
 // 5 seconds instead of 5 minutes). Comment back out before real use.
@@ -64,6 +67,10 @@ void setup() {
   currentDateUpdate(today, 0); // force an initial read before the first render
 #endif
   applySeasonForToday();
+
+#ifdef FORCE_SOLID_COLOR
+  setSolidColor(FORCE_SOLID_COLOR);
+#endif
 
   FastLED.addLeds<LED_TYPE, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGHTNESS);

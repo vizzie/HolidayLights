@@ -112,7 +112,7 @@ static int16_t diagonalDistance(const Point &p, uint8_t cornerIndex,
 
 static void startNextDiagonalWipe() {
   diagWipe.cornerIndex = random8(4);
-  diagWipe.maxDiag = mappedWidth() + mappedHeight();
+  diagWipe.maxDiag = mappedCompressedWidth() + mappedHeight();
   diagWipe.threshold = 0;
   diagWipe.holdCounter = 0;
   diagWipe.colorFromIndex = diagWipe.colorToIndex;
@@ -129,10 +129,13 @@ static void renderDiagonalWipe(CRGB *leds, uint16_t numLeds,
 
   CRGB colorFrom = ColorFromPalette(palette, diagWipe.colorFromIndex);
   CRGB colorTo = ColorFromPalette(palette, diagWipe.colorToIndex);
-  int16_t maxWidth = mappedWidth();
+  // Compressed x -- the wipe treats the three openings as one continuous
+  // strip, without the physically real but unlit gaps between them eating
+  // into the sweep's travel (see ledIndexToCompressedXY).
+  int16_t maxWidth = mappedCompressedWidth();
   int16_t maxHeight = mappedHeight();
   for (uint16_t i = 0; i < numLeds; i++) {
-    Point p = ledIndexToXY(i);
+    Point p = ledIndexToCompressedXY(i);
     int16_t d = diagonalDistance(p, diagWipe.cornerIndex, maxWidth, maxHeight);
     leds[i] = (d <= diagWipe.threshold) ? colorTo : colorFrom;
   }
@@ -170,6 +173,17 @@ static void renderGradient(CRGB *leds, uint16_t numLeds,
   }
 }
 
+// ---- Solid: flat color, no motion -- mainly for testing/calibration ----
+static CRGB solidColor = CRGB::White;
+
+void setSolidColor(CRGB color) {
+  solidColor = color;
+}
+
+static void renderSolid(CRGB *leds, uint16_t numLeds) {
+  fill_solid(leds, numLeds, solidColor);
+}
+
 void renderEffect(EffectId effect, CRGB *leds, uint16_t numLeds,
                    const TProgmemRGBPalette16 &palette, uint16_t frame) {
   switch (effect) {
@@ -191,6 +205,9 @@ void renderEffect(EffectId effect, CRGB *leds, uint16_t numLeds,
     break;
   case EFFECT_GRADIENT:
     renderGradient(leds, numLeds, palette, frame);
+    break;
+  case EFFECT_SOLID:
+    renderSolid(leds, numLeds);
     break;
   }
 }
