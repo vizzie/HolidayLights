@@ -80,12 +80,6 @@ void setup() {
 }
 
 void loop() {
-#ifndef FAKE_DATE_MONTH
-  if (currentDateUpdate(today, 3600000UL)) { // re-check the date hourly
-    applySeasonForToday();
-  }
-#endif
-
   if (millis() - effectCycleStartMs >= EFFECT_CYCLE_MS) {
     effectIndex = (effectIndex + 1) % activeSeason->numEffects;
     currentEffect = activeSeason->effects[effectIndex];
