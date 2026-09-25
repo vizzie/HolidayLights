@@ -41,10 +41,6 @@ static void startChasePixels(uint16_t numLeds) {
   }
 }
 
-static CRGB multiplyBlend(const CRGB &a, const CRGB &b) {
-  return CRGB(scale8(a.r, b.r), scale8(a.g, b.g), scale8(a.b, b.b));
-}
-
 static void renderChase(CRGB *leds, uint16_t numLeds,
                          const TProgmemRGBPalette16 &palette, bool justStarted) {
   if (justStarted) {
@@ -54,22 +50,18 @@ static void renderChase(CRGB *leds, uint16_t numLeds,
   fadeToBlackBy(leds, numLeds, 32);
 
   int16_t maxPos = (int16_t)((numLeds - 1) << CHASE_POS_SHIFT);
-  uint16_t drawnIdx[MAX_CHASE_PIXELS];
 
   for (uint8_t k = 0; k < numChasePixels; k++) {
     ChasePixel &p = chasePixels[k];
     uint16_t idx = (uint16_t)(p.position >> CHASE_POS_SHIFT);
     CRGB color = ColorFromPalette(palette, p.paletteIndex);
 
-    bool collided = false;
-    for (uint8_t j = 0; j < k; j++) {
-      if (drawnIdx[j] == idx) {
-        collided = true;
-        break;
-      }
-    }
-    leds[idx] = collided ? multiplyBlend(leds[idx], color) : color;
-    drawnIdx[k] = idx;
+    // Add into whatever's already there -- another pixel's head drawn
+    // earlier this frame, or a still-fading trail from a recent pass --
+    // instead of overwriting it, so overlapping tails brighten/blend
+    // together instead of one replacing the other. Saturates at 255 per
+    // channel (CRGB::operator+=), so it can't wrap around and glitch.
+    leds[idx] += color;
 
     p.position += p.velocity;
     if (p.position < 0) {
