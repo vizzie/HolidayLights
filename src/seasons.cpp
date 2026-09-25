@@ -68,7 +68,7 @@ static const EffectId IndependenceEffects[] = {EFFECT_CHASE, EFFECT_SPARKLE, EFF
 static const EffectId HalloweenEffects[] = {EFFECT_SPARKLE, EFFECT_DIAGONAL_WIPE};
 static const EffectId ThanksgivingEffects[] = {EFFECT_CHASE, EFFECT_GRADIENT};
 static const EffectId ChristmasEffects[] = {EFFECT_SPARKLE, EFFECT_CHASE, EFFECT_VERTICAL_WIPE, EFFECT_STRIPES};
-static const EffectId DefaultEffects[] = {EFFECT_CHASE};
+static const EffectId DefaultEffects[] = {EFFECT_CHASE, EFFECT_SPARKLE, EFFECT_STRIPES, EFFECT_VERTICAL_WIPE, EFFECT_GRADIENT, EFFECT_DIAGONAL_WIPE};
 
 #define EFFECT_COUNT(arr) (sizeof(arr) / sizeof((arr)[0]))
 
