@@ -8,11 +8,78 @@ static const uint8_t COLOR_FROM_INDEX = 0;
 static const uint8_t COLOR_TO_INDEX = 170;
 static const uint8_t STRIPE_ALT_INDEX = 128;
 
-// ---- Linear: a single pixel chasing along the wire ----
+// ---- Linear: multiple independent pixels chasing along the wire ----
+// Each has its own fixed-point position/velocity (avoids float math on the
+// 32u4) and bounces off both ends. When two land on the same LED in the
+// same frame, their colors multiply together instead of one overwriting
+// the other -- since these are discrete LEDs, "overlap" can only mean
+// "same index, same frame," there's no partial/sub-pixel overlap to blend.
+#define MIN_CHASE_PIXELS 2
+#define MAX_CHASE_PIXELS 6
+#define CHASE_POS_SHIFT 4 // fixed-point: 16 sub-positions per LED
+
+struct ChasePixel {
+  int16_t position; // fixed-point, 0..(numLeds-1)<<CHASE_POS_SHIFT
+  int16_t velocity; // fixed-point units/frame; sign = direction
+  uint8_t paletteIndex;
+};
+static ChasePixel chasePixels[MAX_CHASE_PIXELS];
+static uint8_t numChasePixels = 0;
+
+static void startChasePixels(uint16_t numLeds) {
+  numChasePixels = MIN_CHASE_PIXELS + random8(MAX_CHASE_PIXELS - MIN_CHASE_PIXELS + 1);
+  int16_t maxPos = (int16_t)((numLeds - 1) << CHASE_POS_SHIFT);
+  for (uint8_t k = 0; k < numChasePixels; k++) {
+    ChasePixel &p = chasePixels[k];
+    // Spread starting positions evenly so they don't all bunch up at spawn.
+    p.position = (numChasePixels > 1)
+                     ? (int16_t)((int32_t)maxPos * k / (numChasePixels - 1))
+                     : 0;
+    uint8_t speed = 4 + random8(21); // 0.25 - 1.5 px/frame
+    p.velocity = random8(2) ? (int16_t)speed : (int16_t)(-speed);
+    p.paletteIndex = (uint8_t)((255UL * k) / numChasePixels);
+  }
+}
+
+static CRGB multiplyBlend(const CRGB &a, const CRGB &b) {
+  return CRGB(scale8(a.r, b.r), scale8(a.g, b.g), scale8(a.b, b.b));
+}
+
 static void renderChase(CRGB *leds, uint16_t numLeds,
-                         const TProgmemRGBPalette16 &palette, uint16_t frame) {
+                         const TProgmemRGBPalette16 &palette, bool justStarted) {
+  if (justStarted) {
+    startChasePixels(numLeds);
+  }
+
   fadeToBlackBy(leds, numLeds, 32);
-  leds[frame % numLeds] = ColorFromPalette(palette, frame & 0xFF);
+
+  int16_t maxPos = (int16_t)((numLeds - 1) << CHASE_POS_SHIFT);
+  uint16_t drawnIdx[MAX_CHASE_PIXELS];
+
+  for (uint8_t k = 0; k < numChasePixels; k++) {
+    ChasePixel &p = chasePixels[k];
+    uint16_t idx = (uint16_t)(p.position >> CHASE_POS_SHIFT);
+    CRGB color = ColorFromPalette(palette, p.paletteIndex);
+
+    bool collided = false;
+    for (uint8_t j = 0; j < k; j++) {
+      if (drawnIdx[j] == idx) {
+        collided = true;
+        break;
+      }
+    }
+    leds[idx] = collided ? multiplyBlend(leds[idx], color) : color;
+    drawnIdx[k] = idx;
+
+    p.position += p.velocity;
+    if (p.position < 0) {
+      p.position = -p.position;
+      p.velocity = (int16_t)(-p.velocity);
+    } else if (p.position > maxPos) {
+      p.position = (int16_t)(2 * maxPos - p.position);
+      p.velocity = (int16_t)(-p.velocity);
+    }
+  }
 }
 
 // ---- 2D: falling sparkles ----
@@ -186,9 +253,13 @@ static void renderSolid(CRGB *leds, uint16_t numLeds) {
 
 void renderEffect(EffectId effect, CRGB *leds, uint16_t numLeds,
                    const TProgmemRGBPalette16 &palette, uint16_t frame) {
+  static EffectId lastEffect = (EffectId)0xFF; // sentinel: no effect run yet
+  bool justStarted = (effect != lastEffect);
+  lastEffect = effect;
+
   switch (effect) {
   case EFFECT_CHASE:
-    renderChase(leds, numLeds, palette, frame);
+    renderChase(leds, numLeds, palette, justStarted);
     break;
   case EFFECT_SPARKLE:
     updateSparkles();
