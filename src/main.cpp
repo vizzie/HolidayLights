@@ -11,7 +11,7 @@
 #define LED_TYPE WS2812B
 #define COLOR_ORDER GRB
 
-#define BRIGHTNESS 128 // 0-255
+#define BRIGHTNESS 100 // 0-255
 
 // Uncomment to preview a season's look without waiting on the real
 // calendar date. Skips the Bridge/Linux date lookup entirely (and its
