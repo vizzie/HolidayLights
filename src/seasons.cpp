@@ -34,10 +34,10 @@ const TProgmemRGBPalette16 IndependenceDayPalette PROGMEM = {
     CRGB::Red,      CRGB::White, CRGB::RoyalBlue, CRGB::White};
 
 const TProgmemRGBPalette16 HalloweenPalette PROGMEM = {
-    CRGB::OrangeRed, CRGB::Purple,    CRGB::DarkOrange, CRGB::DarkViolet,
-    CRGB::Purple,    CRGB::OrangeRed, CRGB::DarkViolet, CRGB::DarkOrange,
-    CRGB::OrangeRed, CRGB::DarkViolet,CRGB::Purple,     CRGB::DarkOrange,
-    CRGB::DarkOrange,CRGB::Purple,    CRGB::OrangeRed,  CRGB::DarkViolet};
+    CRGB::Orange,    CRGB::Purple,    CRGB::DarkOrange, CRGB::Green,
+    CRGB::Purple,    CRGB::Orange,    CRGB::DarkViolet, CRGB::DarkOrange,
+    CRGB::OrangeRed, CRGB::Green,     CRGB::Purple,     CRGB::DarkOrange,
+    CRGB::Green,     CRGB::Purple,    CRGB::OrangeRed,  CRGB::DarkViolet};
 
 const TProgmemRGBPalette16 ThanksgivingPalette PROGMEM = {
     CRGB::OrangeRed,  CRGB::SaddleBrown, CRGB::Gold,       CRGB::DarkRed,
@@ -65,7 +65,7 @@ static const EffectId ValentinesEffects[] = {EFFECT_SPARKLE, EFFECT_GRADIENT};
 static const EffectId StPatricksEffects[] = {EFFECT_CHASE, EFFECT_STRIPES};
 static const EffectId SpringEffects[] = {EFFECT_GRADIENT, EFFECT_DIAGONAL_WIPE};
 static const EffectId IndependenceEffects[] = {EFFECT_CHASE, EFFECT_SPARKLE, EFFECT_STRIPES, EFFECT_VERTICAL_WIPE, EFFECT_GRADIENT, EFFECT_DIAGONAL_WIPE};
-static const EffectId HalloweenEffects[] = {EFFECT_SPARKLE, EFFECT_DIAGONAL_WIPE};
+static const EffectId HalloweenEffects[] = {EFFECT_STRIPES, EFFECT_SPARKLE, EFFECT_DIAGONAL_WIPE, EFFECT_VERTICAL_WIPE, EFFECT_GRADIENT, EFFECT_CHASE};
 static const EffectId ThanksgivingEffects[] = {EFFECT_CHASE, EFFECT_GRADIENT};
 static const EffectId ChristmasEffects[] = {EFFECT_SPARKLE, EFFECT_CHASE, EFFECT_VERTICAL_WIPE, EFFECT_STRIPES};
 static const EffectId DefaultEffects[] = {EFFECT_CHASE, EFFECT_SPARKLE, EFFECT_STRIPES, EFFECT_VERTICAL_WIPE, EFFECT_GRADIENT, EFFECT_DIAGONAL_WIPE};
