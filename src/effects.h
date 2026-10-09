@@ -9,6 +9,9 @@ enum EffectId : uint8_t {
   EFFECT_DIAGONAL_WIPE,
   EFFECT_STRIPES,
   EFFECT_GRADIENT,
+  EFFECT_STORM,     // candlelight, lightning, then purple slime oozes down
+  EFFECT_HEARTBEAT, // lub-dub pulse that speeds up, then flatlines
+  EFFECT_GHOST,     // pale glow drifting across the openings
   EFFECT_SOLID, // holds a single flat color -- mainly for testing
 };
 

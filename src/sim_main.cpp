@@ -53,6 +53,12 @@ static const char *effectName(EffectId effect) {
     return "Stripes";
   case EFFECT_GRADIENT:
     return "Gradient";
+  case EFFECT_STORM:
+    return "Lightning Storm";
+  case EFFECT_HEARTBEAT:
+    return "Heartbeat";
+  case EFFECT_GHOST:
+    return "Passing Ghost";
   case EFFECT_SOLID:
     return "Solid";
   }
