@@ -31,7 +31,8 @@ The full `~/.platformio/penv/bin/pio` path is needed because the PlatformIO VSCo
 
 ## Controls
 
-- Any key: advance to the next effect in the active season's rotation (the current effect's name is shown in the window title)
+- `x` / `z`: next / previous effect in the active season's rotation (the current effect's name is shown in the window title)
+- `s` / `a`: next / previous season palette (the last one is the default season)
 - Close the window, or Ctrl-C: quit
 
 ## Previewing a different date

@@ -34,10 +34,10 @@ const TProgmemRGBPalette16 IndependenceDayPalette PROGMEM = {
     CRGB::Red,      CRGB::White, CRGB::RoyalBlue, CRGB::White};
 
 const TProgmemRGBPalette16 HalloweenPalette PROGMEM = {
-    CRGB::Orange,    CRGB::Purple,    CRGB::Red,        CRGB::Green,
-    CRGB::Purple,    CRGB::Orange,    CRGB::DarkViolet, CRGB::DarkOrange,
-    CRGB::OrangeRed, CRGB::Green,     CRGB::Purple,     CRGB::Red,
-    CRGB::Green,     CRGB::Purple,    CRGB::OrangeRed,  CRGB::DarkViolet};
+    CRGB::Orange,    CRGB::Orange,    CRGB::Orange,    CRGB::Orange,
+    CRGB::White,     CRGB::Black,     CRGB::White,     CRGB::Black,
+    CRGB::Green,     CRGB::Green,     CRGB::Green,     CRGB::Green,
+    CRGB::Purple,    CRGB::Purple,    CRGB::Purple,    CRGB::Purple};
 
 const TProgmemRGBPalette16 ThanksgivingPalette PROGMEM = {
     CRGB::OrangeRed,  CRGB::SaddleBrown, CRGB::Gold,       CRGB::DarkRed,
@@ -65,7 +65,7 @@ static const EffectId ValentinesEffects[] = {EFFECT_SPARKLE, EFFECT_GRADIENT};
 static const EffectId StPatricksEffects[] = {EFFECT_CHASE, EFFECT_STRIPES};
 static const EffectId SpringEffects[] = {EFFECT_GRADIENT, EFFECT_DIAGONAL_WIPE};
 static const EffectId IndependenceEffects[] = {EFFECT_CHASE, EFFECT_SPARKLE, EFFECT_STRIPES, EFFECT_VERTICAL_WIPE, EFFECT_GRADIENT, EFFECT_DIAGONAL_WIPE};
-static const EffectId HalloweenEffects[] = {EFFECT_STORM, EFFECT_HEARTBEAT, EFFECT_GHOST, EFFECT_STRIPES, EFFECT_SPARKLE, EFFECT_CHASE, EFFECT_DIAGONAL_WIPE, EFFECT_VERTICAL_WIPE, EFFECT_GRADIENT};
+static const EffectId HalloweenEffects[] = {EFFECT_STORM, EFFECT_HEARTBEAT, EFFECT_GHOST, EFFECT_GRADIENT};
 static const EffectId ThanksgivingEffects[] = {EFFECT_CHASE, EFFECT_GRADIENT};
 static const EffectId ChristmasEffects[] = {EFFECT_SPARKLE, EFFECT_CHASE, EFFECT_VERTICAL_WIPE, EFFECT_STRIPES};
 static const EffectId DefaultEffects[] = {EFFECT_CHASE, EFFECT_SPARKLE, EFFECT_STRIPES, EFFECT_VERTICAL_WIPE, EFFECT_GRADIENT, EFFECT_DIAGONAL_WIPE, EFFECT_STORM, EFFECT_HEARTBEAT, EFFECT_GHOST};
@@ -106,4 +106,12 @@ const Season &getActiveSeason(uint8_t month, uint8_t day) {
     }
   }
   return DefaultSeason; // also covers month == 0, i.e. before the real date arrives
+}
+
+uint8_t seasonCount() {
+  return NUM_SEASONS + 1; // + the default season
+}
+
+const Season &seasonAt(uint8_t index) {
+  return index < NUM_SEASONS ? SEASONS[index] : DefaultSeason;
 }

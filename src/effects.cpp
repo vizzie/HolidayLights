@@ -33,6 +33,44 @@ static uint8_t collectPaletteIndices(const TProgmemRGBPalette16 &palette, ColorT
 static bool isWarm(const CRGB &c) { return c.r > c.b && c.r >= c.g; }
 static bool isPurple(const CRGB &c) { return c.b > c.g && c.b >= c.r; }
 
+// Linear blend from a to b; amount 0 = all a, 255 = (almost) all b.
+static CRGB mixColor(const CRGB &a, const CRGB &b, uint8_t amount) {
+  return CRGB((uint8_t)(a.r + (((int16_t)b.r - a.r) * amount >> 8)),
+              (uint8_t)(a.g + (((int16_t)b.g - a.g) * amount >> 8)),
+              (uint8_t)(a.b + (((int16_t)b.b - a.b) * amount >> 8)));
+}
+
+// Picks up to three different colors from the palette at random, for the
+// effects that use a small trio instead of the whole palette. Palettes
+// repeat colors, so duplicates are skipped; if the palette has fewer than
+// three distinct colors, returns however many it has. Returns the count.
+static uint8_t pickThreeColors(const TProgmemRGBPalette16 &palette, CRGB out[3]) {
+  CRGB distinct[16];
+  uint8_t numDistinct = 0;
+  for (uint8_t k = 0; k < 16; k++) {
+    CRGB c = ColorFromPalette(palette, k * 16);
+    bool seen = false;
+    for (uint8_t d = 0; d < numDistinct; d++) {
+      if (sameColor(distinct[d], c)) {
+        seen = true;
+        break;
+      }
+    }
+    if (!seen) {
+      distinct[numDistinct++] = c;
+    }
+  }
+  uint8_t n = numDistinct < 3 ? numDistinct : 3;
+  for (uint8_t k = 0; k < n; k++) {
+    uint8_t pick = k + random8(numDistinct - k); // partial Fisher-Yates shuffle
+    CRGB t = distinct[k];
+    distinct[k] = distinct[pick];
+    distinct[pick] = t;
+    out[k] = distinct[k];
+  }
+  return n;
+}
+
 // ---- Linear: multiple independent pixels chasing along the wire ----
 // Each has its own fixed-point position/velocity (avoids float math on the
 // 32u4) and bounces off both ends. When two land on the same LED in the
@@ -309,9 +347,10 @@ static void renderDiagonalWipe(CRGB *leds, uint16_t numLeds,
 }
 
 // ---- Linear: 10-pixel stripes chasing along the wire ----
-// Each stripe is the next of the palette's 16 colors in turn, with
-// back-to-back repeats (Red, Red, ...) collapsed so neighboring stripes
-// always differ instead of merging into one double-width stripe.
+// Each stripe is the next of three colors picked at random from the palette
+// each time the effect starts, so every run uses a different trio. The
+// picked colors are all different, so neighboring stripes never merge into
+// one double-width stripe.
 //
 // Speed drifts: it eases toward a randomly chosen target by one small step
 // per frame, and picks a new target once it arrives, so the stripes gently
@@ -321,24 +360,17 @@ static const uint8_t STRIPE_MIN_SPEED = 32;  // ~0.13 LED/frame, ~4 LEDs/s
 static const uint8_t STRIPE_MAX_SPEED = 255; // 1 LED/frame, ~30 LEDs/s
 
 static void renderStripes(CRGB *leds, uint16_t numLeds,
-                           const TProgmemRGBPalette16 &palette) {
+                           const TProgmemRGBPalette16 &palette, bool justStarted) {
   const uint16_t stripeWidth = 10;
   static uint16_t offset = 0; // own counter, so it wraps cleanly at a stripe-cycle boundary
   static uint8_t subStep = 0;
   static uint8_t speed = 128;
   static uint8_t targetSpeed = 128;
+  static CRGB colors[3];
+  static uint8_t numColors = 0;
 
-  CRGB colors[16];
-  uint8_t numColors = 0;
-  for (uint8_t k = 0; k < 16; k++) {
-    CRGB c = ColorFromPalette(palette, k * 16);
-    if (numColors == 0 || !sameColor(c, colors[numColors - 1])) {
-      colors[numColors++] = c;
-    }
-  }
-  // The sequence repeats, so the last color also borders the first.
-  if (numColors > 1 && sameColor(colors[numColors - 1], colors[0])) {
-    numColors--;
+  if (justStarted) {
+    numColors = pickThreeColors(palette, colors);
   }
 
   uint16_t cycleLength = numColors * stripeWidth;
@@ -362,14 +394,30 @@ static void renderStripes(CRGB *leds, uint16_t numLeds,
 }
 
 // ---- 2D: slow-drifting vertical gradient, bottom to top ----
+// Blends through three colors picked at random from the palette each time
+// the effect starts, looping back from the last to the first so the drift
+// never has a seam.
 static void renderGradient(CRGB *leds, uint16_t numLeds,
-                            const TProgmemRGBPalette16 &palette, uint16_t frame) {
+                            const TProgmemRGBPalette16 &palette, uint16_t frame,
+                            bool justStarted) {
+  static CRGB colors[3];
+  static uint8_t numColors = 0;
+  if (justStarted) {
+    numColors = pickThreeColors(palette, colors);
+  }
+
+  const uint16_t segment = 256; // position units per color-to-color blend
+  uint16_t cycle = numColors * segment;
   int16_t height = mappedHeight();
-  uint8_t phase = (uint8_t)(frame / 4); // drift through the palette, ~30s per full cycle
+  // Drift ~30s per full cycle; 65536 frames is a whole number of cycles for
+  // 3 colors, so the frame counter wrapping doesn't cause a jump.
+  uint16_t phase = (uint16_t)((uint32_t)frame * cycle / 1024);
   for (uint16_t i = 0; i < numLeds; i++) {
     Point p = ledIndexToXY(i);
-    uint8_t index = (uint8_t)map(p.y, 0, height, 0, 255) + phase;
-    leds[i] = ColorFromPalette(palette, index);
+    uint16_t pos = ((uint16_t)map(p.y, 0, height, 0, cycle - 1) + phase) % cycle;
+    uint8_t from = pos / segment;
+    uint8_t to = (from + 1) % numColors;
+    leds[i] = mixColor(colors[from], colors[to], (uint8_t)(pos % segment));
   }
 }
 
@@ -402,13 +450,6 @@ struct StormState {
   uint8_t flash;
 };
 static StormState storm = {STORM_CANDLES, 0, 0, 0};
-
-// Linear blend from a to b; amount 0 = all a, 255 = (almost) all b.
-static CRGB mixColor(const CRGB &a, const CRGB &b, uint8_t amount) {
-  return CRGB((uint8_t)(a.r + (((int16_t)b.r - a.r) * amount >> 8)),
-              (uint8_t)(a.g + (((int16_t)b.g - a.g) * amount >> 8)),
-              (uint8_t)(a.b + (((int16_t)b.b - a.b) * amount >> 8)));
-}
 
 static void renderStorm(CRGB *leds, uint16_t numLeds, const TProgmemRGBPalette16 &palette,
                         uint16_t frame, bool justStarted) {
@@ -508,7 +549,7 @@ static void renderStorm(CRGB *leds, uint16_t numLeds, const TProgmemRGBPalette16
 }
 
 // ---- 2D: heartbeat ----
-// The whole house pulses in the palette's reddest color with a lub-dub
+// The whole house pulses in pure red (not a palette color) with a lub-dub
 // rhythm that slowly speeds up, then flatlines into darkness for a few
 // seconds before starting again.
 #define HEART_START_PERIOD 45     // frames per beat at the start (~44 bpm)
@@ -531,8 +572,7 @@ static uint8_t thump(uint8_t t, uint8_t peak) {
   return drop < peak ? (uint8_t)(peak - drop) : 0;
 }
 
-static void renderHeartbeat(CRGB *leds, uint16_t numLeds, const TProgmemRGBPalette16 &palette,
-                            bool justStarted) {
+static void renderHeartbeat(CRGB *leds, uint16_t numLeds, bool justStarted) {
   if (justStarted) {
     heart.period = HEART_START_PERIOD;
     heart.beatFrame = 0;
@@ -563,18 +603,7 @@ static void renderHeartbeat(CRGB *leds, uint16_t numLeds, const TProgmemRGBPalet
     }
   }
 
-  // Reddest palette entry: most red relative to green and blue.
-  uint8_t redIndex = 0;
-  int16_t bestScore = -1000;
-  for (uint8_t k = 0; k < 16; k++) {
-    CRGB c = ColorFromPalette(palette, k * 16);
-    int16_t score = (int16_t)c.r - c.g - c.b;
-    if (score > bestScore) {
-      bestScore = score;
-      redIndex = k * 16;
-    }
-  }
-  fill_solid(leds, numLeds, ColorFromPalette(palette, redIndex, level));
+  fill_solid(leds, numLeds, CRGB(level, 0, 0)); // CRGB::Red (255,0,0) scaled by level
 }
 
 // ---- 2D: passing ghost ----
@@ -676,16 +705,16 @@ void renderEffect(EffectId effect, CRGB *leds, uint16_t numLeds,
     renderDiagonalWipe(leds, numLeds, palette, frame);
     break;
   case EFFECT_STRIPES:
-    renderStripes(leds, numLeds, palette);
+    renderStripes(leds, numLeds, palette, justStarted);
     break;
   case EFFECT_GRADIENT:
-    renderGradient(leds, numLeds, palette, frame);
+    renderGradient(leds, numLeds, palette, frame, justStarted);
     break;
   case EFFECT_STORM:
     renderStorm(leds, numLeds, palette, frame, justStarted);
     break;
   case EFFECT_HEARTBEAT:
-    renderHeartbeat(leds, numLeds, palette, justStarted);
+    renderHeartbeat(leds, numLeds, justStarted);
     break;
   case EFFECT_GHOST:
     renderGhost(leds, numLeds, palette, frame, justStarted);

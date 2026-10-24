@@ -26,4 +26,9 @@ bool dateInRange(uint8_t month, uint8_t day, const DateRange &range);
 // has been fetched, i.e. month == 0), a default season is returned instead.
 const Season &getActiveSeason(uint8_t month, uint8_t day);
 
+// Enumerate every season (the dated ones in calendar order, then the default
+// season last) so the simulator can step through all the palettes.
+uint8_t seasonCount();
+const Season &seasonAt(uint8_t index);
+
 extern const TProgmemRGBPalette16 DefaultPalette;

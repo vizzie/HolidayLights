@@ -26,17 +26,34 @@ static const Season *activeSeason = nullptr;
 static const TProgmemRGBPalette16 *currentPalette = &DefaultPalette;
 static EffectId currentEffect = EFFECT_CHASE;
 static uint8_t effectIndex = 0;
+static uint8_t seasonIndex = 0;
 
-static void applySeasonForToday() {
-  activeSeason = &getActiveSeason(simMonth, simDay);
-  currentPalette = activeSeason->palette;
+static void setSeason(const Season *season) {
+  activeSeason = season;
+  currentPalette = season->palette;
   effectIndex = 0;
-  currentEffect = activeSeason->effects[0];
+  currentEffect = season->effects[0];
 }
 
-static void advanceEffect() {
-  effectIndex = (effectIndex + 1) % activeSeason->numEffects;
+static void applySeasonForToday() {
+  const Season *today = &getActiveSeason(simMonth, simDay);
+  for (uint8_t i = 0; i < seasonCount(); i++) {
+    if (&seasonAt(i) == today) {
+      seasonIndex = i;
+    }
+  }
+  setSeason(today);
+}
+
+// direction is +1 or -1; wraps around either end.
+static void stepEffect(int8_t direction) {
+  effectIndex = (effectIndex + direction + activeSeason->numEffects) % activeSeason->numEffects;
   currentEffect = activeSeason->effects[effectIndex];
+}
+
+static void stepSeason(int8_t direction) {
+  seasonIndex = (seasonIndex + direction + seasonCount()) % seasonCount();
+  setSeason(&seasonAt(seasonIndex));
 }
 
 static const char *effectName(EffectId effect) {
@@ -67,8 +84,8 @@ static const char *effectName(EffectId effect) {
 
 static void updateWindowTitle(SDL_Window *window) {
   char title[128];
-  snprintf(title, sizeof(title), "HolidayLights sim -- %s (press any key for next)",
-           effectName(currentEffect));
+  snprintf(title, sizeof(title), "HolidayLights sim -- %s | season %d/%d (z/x effect, a/s season)",
+           effectName(currentEffect), seasonIndex + 1, seasonCount());
   SDL_SetWindowTitle(window, title);
 }
 
@@ -98,7 +115,22 @@ int main() {
       if (event.type == SDL_QUIT) {
         running = false;
       } else if (event.type == SDL_KEYDOWN) {
-        advanceEffect();
+        switch (event.key.keysym.sym) {
+        case SDLK_x:
+          stepEffect(+1);
+          break;
+        case SDLK_z:
+          stepEffect(-1);
+          break;
+        case SDLK_s:
+          stepSeason(+1);
+          break;
+        case SDLK_a:
+          stepSeason(-1);
+          break;
+        default:
+          continue;
+        }
         updateWindowTitle(window);
       }
     }

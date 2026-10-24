@@ -5,7 +5,7 @@
 set -euo pipefail
 
 HEX_FILE="$1"
-YUN_HOST="${YUN_HOST:-10.68.1.8}"
+YUN_HOST="${YUN_HOST:-10.68.1.15}"
 YUN_USER="${YUN_USER:-root}"
 REMOTE_HEX="/tmp/sketch.hex"
 
