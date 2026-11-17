@@ -15,6 +15,7 @@ struct Season {
   const TProgmemRGBPalette16 *palette;
   const EffectId *effects; // cycles through these, one at a time
   uint8_t numEffects;
+  const char *name; // for status reporting
 };
 
 // True if (month, day) falls within range, handling ranges that wrap the
