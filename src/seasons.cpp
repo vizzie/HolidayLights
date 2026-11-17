@@ -68,7 +68,7 @@ static const EffectId IndependenceEffects[] = {EFFECT_CHASE, EFFECT_SPARKLE, EFF
 static const EffectId HalloweenEffects[] = {EFFECT_STORM, EFFECT_HEARTBEAT, EFFECT_GHOST};
 static const EffectId ThanksgivingEffects[] = {EFFECT_CHASE, EFFECT_GRADIENT};
 static const EffectId ChristmasEffects[] = {EFFECT_SPARKLE, EFFECT_CHASE, EFFECT_VERTICAL_WIPE, EFFECT_STRIPES};
-static const EffectId DefaultEffects[] = {EFFECT_CHASE, EFFECT_SPARKLE, EFFECT_STRIPES, EFFECT_VERTICAL_WIPE, EFFECT_GRADIENT, EFFECT_DIAGONAL_WIPE, EFFECT_STORM, EFFECT_HEARTBEAT, EFFECT_GHOST};
+static const EffectId DefaultEffects[] = {EFFECT_CHASE, EFFECT_SPARKLE, EFFECT_STRIPES, EFFECT_VERTICAL_WIPE, EFFECT_GRADIENT, EFFECT_DIAGONAL_WIPE};
 
 #define EFFECT_COUNT(arr) (sizeof(arr) / sizeof((arr)[0]))
 
@@ -76,18 +76,18 @@ static const EffectId DefaultEffects[] = {EFFECT_CHASE, EFFECT_SPARKLE, EFFECT_S
 // palette, and which effects to cycle through. Kept in calendar order for
 // readability; matching only depends on ranges not overlapping.
 static const Season SEASONS[] = {
-    {{12, 31, 1, 2},  &NewYearPalette,         NewYearEffects,       EFFECT_COUNT(NewYearEffects)},
-    {{2, 10, 2, 14},  &ValentinesPalette,      ValentinesEffects,    EFFECT_COUNT(ValentinesEffects)},
-    {{3, 15, 3, 17},  &StPatricksPalette,      StPatricksEffects,    EFFECT_COUNT(StPatricksEffects)},
-    {{3, 20, 4, 20},  &SpringPalette,          SpringEffects,        EFFECT_COUNT(SpringEffects)},
+    {{12, 31, 1, 2},  &NewYearPalette,         NewYearEffects,       EFFECT_COUNT(NewYearEffects), "New Year"},
+    {{2, 10, 2, 14},  &ValentinesPalette,      ValentinesEffects,    EFFECT_COUNT(ValentinesEffects), "Valentine's"},
+    {{3, 15, 3, 17},  &StPatricksPalette,      StPatricksEffects,    EFFECT_COUNT(StPatricksEffects), "St. Patrick's"},
+    {{3, 20, 4, 20},  &SpringPalette,          SpringEffects,        EFFECT_COUNT(SpringEffects), "Spring"},
     {{6, 28, 7, 5},   &IndependenceDayPalette, IndependenceEffects,  EFFECT_COUNT(IndependenceEffects)},
-    {{10, 1, 10, 31}, &HalloweenPalette,       HalloweenEffects,     EFFECT_COUNT(HalloweenEffects)},
-    {{11, 1, 11, 27}, &ThanksgivingPalette,    ThanksgivingEffects,  EFFECT_COUNT(ThanksgivingEffects)},
-    {{12, 1, 12, 30}, &ChristmasPalette,       ChristmasEffects,     EFFECT_COUNT(ChristmasEffects)},
+    {{10, 1, 10, 31}, &HalloweenPalette,       HalloweenEffects,     EFFECT_COUNT(HalloweenEffects), "Halloween"},
+    {{11, 1, 11, 30}, &ThanksgivingPalette,    ThanksgivingEffects,  EFFECT_COUNT(ThanksgivingEffects), "Thanksgiving"},
+    {{12, 1, 12, 30}, &ChristmasPalette,       ChristmasEffects,     EFFECT_COUNT(ChristmasEffects), "Christmas"},
 };
 static const uint8_t NUM_SEASONS = sizeof(SEASONS) / sizeof(SEASONS[0]);
 
-static const Season DefaultSeason = {{0, 0, 0, 0}, &DefaultPalette, DefaultEffects, EFFECT_COUNT(DefaultEffects)};
+static const Season DefaultSeason = {{0, 0, 0, 0}, &DefaultPalette, DefaultEffects, EFFECT_COUNT(DefaultEffects), "Default"};
 
 bool dateInRange(uint8_t month, uint8_t day, const DateRange &r) {
   uint16_t md = (uint16_t)month * 100 + day;

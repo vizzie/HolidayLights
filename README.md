@@ -1,3 +1,9 @@
+# Holiday Lights
+
+Animations and color palettes picked based on the time of year. Date ranges set up holiday zones where seasonal colors and animations playback.
+
+This system is powered off each night and powered on at dusk. The system gets the date from the time server once at boot. We do not need to update the date since the whole system is powered off every night.
+
 # Simulator
 
 Runs the real animation code (`effects.cpp`, `pixel_map.cpp`, `seasons.cpp`, unmodified) in a desktop window instead of on the Yun, via `sim_main.cpp` and SDL2.
